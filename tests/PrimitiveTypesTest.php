@@ -11,42 +11,58 @@ use ReflectionParameter;
 class PrimitiveTypesTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @dataProvider typeProvider
+     * @dataProvider jsonTypes
      */
-    public function testProperties($type)
+    public function testPrimitives($type)
     {
         $parser = new PhpDocReader();
-        $class = new \ReflectionClass('UnitTest\PhpDocReader\FixturesPrimitiveTypes\Class1');
 
-        $this->assertNull($parser->getPropertyClass($class->getProperty($type)));
+        $this->assertEquals($type, $parser->getPropertyClass('UnitTest\PhpDocReader\FixturesPrimitiveTypes\Class1', $type));
     }
 
     /**
-     * @dataProvider typeProvider
+     * @dataProvider ignoredTypes
+     */
+    public function testCompound($type)
+    {
+        $parser = new PhpDocReader();
+
+        $this->assertNull($parser->getPropertyClass('UnitTest\PhpDocReader\FixturesPrimitiveTypes\Class1', $type));
+    }
+
+
+    /**
+     * @dataProvider ignoredTypes
      */
     public function testMethodParameters($type)
     {
         $parser = new PhpDocReader();
-        $parameter = new ReflectionParameter(array('UnitTest\PhpDocReader\FixturesPrimitiveTypes\Class1', 'foo'), $type);
+        $parameter = new ReflectionParameter(['UnitTest\PhpDocReader\FixturesPrimitiveTypes\Class1', 'foo'], $type);
 
         $this->assertNull($parser->getParameterClass($parameter));
     }
 
-    public function typeProvider()
+    public function jsonTypes()
     {
-        return array(
-            'bool'     => array('bool'),
-            'boolean'  => array('boolean'),
-            'string'   => array('string'),
-            'int'      => array('int'),
-            'integer'  => array('integer'),
-            'float'    => array('float'),
-            'double'   => array('double'),
-            'array'    => array('array'),
-            'object'   => array('object'),
-            'callable' => array('callable'),
-            'resource' => array('resource'),
-            'mixed'    => array('mixed'),
-        );
+        return [
+            'bool'     => ['bool'],
+            'boolean'  => ['boolean'],
+            'string'   => ['string'],
+            'int'      => ['int'],
+            'integer'  => ['integer'],
+            'float'    => ['float'],
+            'double'   => ['double'],
+            'array'    => ['array'],
+            'object'   => ['object'],
+        ];
+    }
+
+    public function ignoredTypes()
+    {
+        return [
+            'callable' => ['callable'],
+            'resource' => ['resource'],
+            'mixed'    => ['mixed'],
+        ];
     }
 }

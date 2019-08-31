@@ -4,6 +4,11 @@ namespace UnitTest\PhpDocReader\Fixtures;
 
 use UnitTest\PhpDocReader\Fixtures\Class3 as ClassClass3;
 
+/**
+ * @property string $scalarPHPDoc
+ * @property \UnitTest\PhpDocReader\Fixtures\Class2 $fqnPHPDoc
+ * @property ClassClass3 $localPHPDoc
+ */
 class Class1
 {
     public $propNone;

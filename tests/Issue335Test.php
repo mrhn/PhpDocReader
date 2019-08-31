@@ -31,8 +31,8 @@ class Issue335Test extends PHPUnit_Framework_TestCase
 
         $class = new ReflectionClass($target);
 
-        $this->assertEquals(self::CLASS_X, $parser->getPropertyClass($class->getProperty("propTrait1")));
-        $this->assertEquals(self::CLASS_X, $parser->getPropertyClass($class->getProperty("propTrait2")));
+        $this->assertEquals(self::CLASS_X, $parser->getPropertyClass(get_class($target), "propTrait1"));
+        $this->assertEquals(self::CLASS_X, $parser->getPropertyClass(get_class($target), 'propTrait2'));
         
         $params = $class->getMethod("methodTrait1")->getParameters();
         $this->assertEquals(self::CLASS_X, $parser->getParameterClass($params[0]));

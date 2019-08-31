@@ -8,6 +8,7 @@ use ReflectionMethod;
 use ReflectionParameter;
 use ReflectionProperty;
 use Reflector;
+use ReflectionException;
 
 /**
  * PhpDoc reader
@@ -21,7 +22,7 @@ class PhpDocReader
      */
     private $parser;
 
-    private $ignoredTypes = array(
+    private $jsonTypes = [
         'bool',
         'boolean',
         'string',
@@ -31,6 +32,9 @@ class PhpDocReader
         'double',
         'array',
         'object',
+    ];
+
+    private $ignoredTypes = array(
         'callable',
         'resource',
         'mixed',
@@ -65,7 +69,12 @@ class PhpDocReader
      */
     public function getPropertyType(ReflectionProperty $property)
     {
-        return $this->getPropertyClass($property);
+        return $this->getPropertyClass($property->getDeclaringClass(), $property->getName());
+    }
+
+    public function getPropertyTypeOptimistic(string $class, string $propertyName)
+    {
+        return $this->getPropertyClass($class, $propertyName);
     }
 
     /**
@@ -76,13 +85,41 @@ class PhpDocReader
      * @throws AnnotationException
      * @return string|null Type of the property (content of var annotation)
      */
-    public function getPropertyClass(ReflectionProperty $property)
+    public function getPropertyClass(string $class, string $propertyName)
     {
-        // Get the content of the @var annotation
-        if (preg_match('/@var\s+([^\s]+)/', $property->getDocComment(), $matches)) {
-            list(, $type) = $matches;
-        } else {
+        $property = null;
+
+        try {
+            $property = new ReflectionProperty($class, $propertyName);
+        } catch (ReflectionException $exception)
+        {
+            $class = new ReflectionClass($class);
+            $doc = $class->getDocComment();
+
+            foreach (explode("\n", $doc) as $line) {
+                if (preg_match('/\$' .$propertyName .'[\r\n]/', $line,  $matches))
+                {
+                    preg_match('/@property\s+([^\s]+)/', $line, $matches);
+                    list(, $type) = $matches;
+                }
+            }
+        }
+
+        if (!isset($property) && !isset($type)) {
             return null;
+        }
+
+        // Get the content of the @var annotation
+        if (!isset($type) && preg_match('/@var\s+([^\s]+)/', $property->getDocComment(), $matches)) {
+            list(, $type) = $matches;
+        }
+        else if (!isset($type)) {
+            return null;
+        }
+
+        // if json return
+        if (in_array($type, $this->jsonTypes)) {
+            return $type;
         }
 
         // Ignore primitive types
@@ -95,7 +132,9 @@ class PhpDocReader
             return null;
         }
 
-        $class = $property->getDeclaringClass();
+        if (isset($property)) {
+            $class = $property->getDeclaringClass();
+        }
 
         // If the class name is not fully qualified (i.e. doesn't start with a \)
         if ($type[0] !== '\\') {
@@ -107,7 +146,7 @@ class PhpDocReader
                     'The @var annotation on %s::%s contains a non existent class "%s". '
                         . 'Did you maybe forget to add a "use" statement for this annotation?',
                     $class->name,
-                    $property->getName(),
+                    $propertyName,
                     $type
                 ));
             }
@@ -226,7 +265,7 @@ class PhpDocReader
      * 
      * @return string|null Fully qualified name of the type, or null if it could not be resolved
      */
-    private function tryResolveFqn($type, ReflectionClass $class, Reflector $member) 
+    private function tryResolveFqn($type, ReflectionClass $class, ?Reflector $member)
     {
         $alias = ($pos = strpos($type, '\\')) === false ? $type : substr($type, 0, $pos);
         $loweredAlias = strtolower($alias);
@@ -269,7 +308,7 @@ class PhpDocReader
      *
      * @return string|null Fully qualified name of the type, or null if it could not be resolved
      */
-    private function tryResolveFqnInTraits($type, ReflectionClass $class, Reflector $member)
+    private function tryResolveFqnInTraits($type, ReflectionClass $class, ?Reflector $member)
     {
         /** @var ReflectionClass[] $traits */
         $traits = array();
@@ -281,13 +320,16 @@ class PhpDocReader
         }
         
         foreach ($traits as $trait) {
-            // Eliminate traits that don't have the property/method/parameter
-            if ($member instanceof ReflectionProperty && !$trait->hasProperty($member->name)) {
-                continue;
-            } elseif ($member instanceof ReflectionMethod && !$trait->hasMethod($member->name)) {
-                continue;
-            } elseif ($member instanceof ReflectionParameter && !$trait->hasMethod($member->getDeclaringFunction()->name)) {
-                continue;
+
+            if (isset($member)) {
+                // Eliminate traits that don't have the property/method/parameter
+                if ($member instanceof ReflectionProperty && !$trait->hasProperty($member->name)) {
+                    continue;
+                } elseif ($member instanceof ReflectionMethod && !$trait->hasMethod($member->name)) {
+                    continue;
+                } elseif ($member instanceof ReflectionParameter && !$trait->hasMethod($member->getDeclaringFunction()->name)) {
+                    continue;
+                }
             }
 
             // Run the resolver again with the ReflectionClass instance for the trait

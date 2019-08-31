@@ -16,9 +16,8 @@ class UnknownTypesTest extends \PHPUnit_Framework_TestCase
     public function testProperties($type)
     {
         $parser = new PhpDocReader();
-        $class = new \ReflectionClass('UnitTest\PhpDocReader\FixturesUnknownTypes\Class1');
 
-        $this->assertNull($parser->getPropertyClass($class->getProperty($type)));
+        $this->assertNull($parser->getPropertyClass('UnitTest\PhpDocReader\FixturesUnknownTypes\Class1', $type));
     }
 
     /**

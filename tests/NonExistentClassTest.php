@@ -17,9 +17,7 @@ class NonExistentClassTest extends \PHPUnit_Framework_TestCase
     public function testProperties()
     {
         $parser = new PhpDocReader();
-        $class = new \ReflectionClass('UnitTest\PhpDocReader\FixturesNonExistentClass\Class1');
-
-        $parser->getPropertyClass($class->getProperty('prop'));
+        $parser->getPropertyClass('UnitTest\PhpDocReader\FixturesNonExistentClass\Class1', 'prop');
     }
 
     /**
