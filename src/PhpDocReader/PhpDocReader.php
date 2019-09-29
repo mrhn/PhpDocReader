@@ -97,7 +97,7 @@ class PhpDocReader
             $doc = $class->getDocComment();
 
             foreach (explode("\n", $doc) as $line) {
-                if (preg_match('/\$' .$propertyName .'[\r\n]/', $line,  $matches))
+                if (preg_match('/\$' .$propertyName . '/', $line,  $matches))
                 {
                     preg_match('/@property\s+([^\s]+)/', $line, $matches);
                     list(, $type) = $matches;
